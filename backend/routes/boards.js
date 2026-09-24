@@ -49,7 +49,14 @@ router.post('/', (req, res) => {
     insertCol.run(boardId, 'In Progress', 1);
     insertCol.run(boardId, 'Done', 2);
 
-    const board = db.prepare('SELECT * FROM boards WHERE id = ?').get(boardId);
+    // Return the same shape as GET /boards (including column/card counts)
+    const board = db.prepare(`
+      SELECT b.*,
+        (SELECT COUNT(*) FROM columns WHERE board_id = b.id) AS column_count,
+        (SELECT COUNT(*) FROM cards c JOIN columns col ON c.column_id = col.id WHERE col.board_id = b.id) AS card_count
+      FROM boards b
+      WHERE b.id = ?
+    `).get(boardId);
     db.close();
     res.status(201).json(board);
   } catch (err) {

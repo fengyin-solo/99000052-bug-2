@@ -22,13 +22,15 @@ export const useBoardStore = defineStore('board', () => {
 
   async function createBoard(name, description) {
     const res = await boardApi.create(name, description)
-    boards.value.unshift(res.data)
+    // Re-sync with the server so counts (default columns) and ordering match GET /boards
+    await fetchBoards()
     return res.data
   }
 
   async function deleteBoard(id) {
     await boardApi.delete(id)
-    boards.value = boards.value.filter(b => b.id !== id)
+    // Re-sync with the server so the list, counts and empty state stay authoritative
+    await fetchBoards()
   }
 
   // Column actions

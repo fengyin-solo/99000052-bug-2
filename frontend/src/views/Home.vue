@@ -68,8 +68,12 @@ const createRules = {
   name: [{ required: true, message: 'Board name is required', trigger: 'blur' }]
 }
 
-onMounted(() => {
-  boardStore.fetchBoards()
+onMounted(async () => {
+  try {
+    await boardStore.fetchBoards()
+  } catch (err) {
+    ElMessage.error('Failed to load boards')
+  }
 })
 
 function openBoard(board) {
