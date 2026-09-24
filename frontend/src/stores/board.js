@@ -8,27 +8,37 @@ export const useBoardStore = defineStore('board', () => {
   const columns = ref([])
   const cards = ref({}) // keyed by columnId -> [cards]
   const loading = ref(false)
+  // Monotonic token so only the latest boards request can update the list.
+  let boardsRequestId = 0
 
   // Board actions
   async function fetchBoards() {
+    const requestId = ++boardsRequestId
     loading.value = true
     try {
       const res = await boardApi.list()
-      boards.value = res.data
+      // Drop stale responses (e.g. a request issued before a create/delete).
+      if (requestId === boardsRequestId) {
+        boards.value = res.data
+      }
     } finally {
-      loading.value = false
+      if (requestId === boardsRequestId) {
+        loading.value = false
+      }
     }
   }
 
   async function createBoard(name, description) {
     const res = await boardApi.create(name, description)
-    boards.value.unshift(res.data)
+    // Reconcile with the server so the new board's counts/order are authoritative.
+    await fetchBoards()
     return res.data
   }
 
   async function deleteBoard(id) {
     await boardApi.delete(id)
-    boards.value = boards.value.filter(b => b.id !== id)
+    // Reconcile with the server so the list, counts and empty state all match.
+    await fetchBoards()
   }
 
   // Column actions
